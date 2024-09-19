@@ -1,3 +1,5 @@
+import { ParamListBase } from "@react-navigation/native";
+
 export interface Transaction{
 id:number;
 category_id:number;
@@ -11,4 +13,9 @@ export interface Category{
     id:number;
     name:string;
     type: "Expense" | "Income";
+}
+
+export  interface RootStackParamList extends ParamListBase {
+    Home: undefined
+    CreditCard: undefined
 }

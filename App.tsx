@@ -1,72 +1,63 @@
 import * as React from "react";
 import { SQLiteProvider } from "expo-sqlite/next";
-import { ActivityIndicator, Platform, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import * as FileSystem from "expo-file-system";
 import { Asset } from "expo-asset";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
 import Home from "./screens/Home";
+import Navigation from "./navigation";
+import * as SplashScreen from 'expo-splash-screen';
+import store from "./store";
+import { Provider } from "react-redux";
+import { loadDatabase } from "./store/actions/database.action";
+import { useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
+import { DatabaseState } from "./store/reducers/database.reducer";
 
 const Stack = createNativeStackNavigator();
 
-const loadDatabase = async () => {
-  const dbName = "mySQLiteDB.db";
-  const dbAsset = require("./assets/mySQLiteDB.db");
-  const dbUri = Asset.fromModule(dbAsset).uri;
-  const dbFilePath = `${FileSystem.documentDirectory}SQLite/${dbName}`;
-
-  const fileInfo = await FileSystem.getInfoAsync(dbFilePath);
-  if (!fileInfo.exists) {
-    await FileSystem.makeDirectoryAsync(
-      `${FileSystem.documentDirectory}SQLite`,
-      { intermediates: true }
-    );
-    await FileSystem.downloadAsync(dbUri, dbFilePath);
-  }
-};
-
-export default function App() {
+function AppContent() {
   const [dbLoaded, setDbLoaded] = React.useState<boolean>(false);
+  const databaseResponse = useSelector((state:any) => state.database.message)
+
+  console.log("databaseResponse",databaseResponse)
+  const dispatch = useDispatch();
 
   React.useEffect(() => {
-    loadDatabase()
-      .then(() => setDbLoaded(true))
-      .catch((e) => console.error(e));
-  }, []);
+    const init = async () => {
+        setDbLoaded(true);
+
+        await SplashScreen.preventAutoHideAsync();
+
+        dispatch(loadDatabase());
+
+        setTimeout(async () => {
+          await SplashScreen.hideAsync(); 
+        }, 3000); 
+    
+    };
+
+    init();
+  }, [dispatch]);
 
   if (!dbLoaded)
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size={"large"} />
         <Text>Loading Database...</Text>
       </View>
     );
-  return (
-    <NavigationContainer>
-      <React.Suspense
-        fallback={
-          <View style={{ flex: 1 }}>
-            <ActivityIndicator size={"large"} />
-            <Text>Loading Database...</Text>
-          </View>
-        }
-      >
-        <SQLiteProvider databaseName="mySQLiteDB.db" useSuspense>
-          <Stack.Navigator>
-            <Stack.Screen
-              name="Home"
-              component={Home}
-              options={{
-                headerTitle: "Budget Buddy",
-                headerLargeTitle: true,
-                headerTransparent: Platform.OS === "ios" ? true : false,
-                headerBlurEffect: "light",
-              }}
-            />
 
-          </Stack.Navigator>
-        </SQLiteProvider>
-      </React.Suspense>
-    </NavigationContainer>
+  return (
+      <Navigation />
+  );
+}
+
+export default function App() {
+  return (
+    <Provider store={store}>
+      <AppContent />
+    </Provider>
   );
 }
